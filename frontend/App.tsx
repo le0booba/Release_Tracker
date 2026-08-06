@@ -3,7 +3,7 @@ import { parseGithubUrl } from './utils.ts';
 import { fetchReleases } from './services/githubService.ts';
 import { RepoState } from './types.ts';
 import { RepoCard } from './components/RepoCard.tsx';
-import { RefreshCw, Plus, Search, CheckCircle2, AlertCircle, Layers } from 'lucide-react';
+import { RefreshCw, Search, CheckCircle2, AlertCircle, Layers, ExternalLink } from 'lucide-react';
 
 const GithubIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -11,10 +11,9 @@ const GithubIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
   </svg>
 );
 
-// All requested repositories from both prompts
 const DEFAULT_URLS = [
   "https://github.com/2dust/v2rayNG",
-  "https://github.com/Liafanx/MTProxyLЭ", // Automatically cleaned to MTProxyL
+  "https://github.com/Liafanx/MTProxyLЭ",
   "https://github.com/sleep3r/mtproto.zig",
   "https://github.com/Mekotofeuka/MTPROTO_FIX_By_MEKO",
   "https://github.com/cwash797-cmd/Panel-Naive-Mieru-by-RIXXX",
@@ -30,8 +29,6 @@ const LOCAL_STORAGE_KEY = 'tracked_github_repo_urls';
 
 export default function App() {
   const [repos, setRepos] = useState<RepoState[]>([]);
-  const [newUrlInput, setNewUrlInput] = useState('');
-  const [addError, setAddError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
 
@@ -125,40 +122,6 @@ export default function App() {
     setIsGlobalRefreshing(false);
   };
 
-  const handleAddRepo = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddError(null);
-
-    if (!newUrlInput.trim()) return;
-
-    const info = parseGithubUrl(newUrlInput);
-    if (!info) {
-      setAddError('Please enter a valid GitHub repository link (e.g., https://github.com/owner/repo)');
-      return;
-    }
-
-    const id = `${info.owner}/${info.name}`;
-    if (repos.some(r => r.id === id)) {
-      setAddError('This repository is already in your tracking list.');
-      return;
-    }
-
-    const newRepoState: RepoState = {
-      id,
-      info,
-      data: null,
-      loading: false,
-      error: null,
-      lastFetched: null
-    };
-
-    const updatedRepos = [newRepoState, ...repos];
-    setRepos(updatedRepos);
-    persistRepos(updatedRepos);
-    setNewUrlInput('');
-    fetchRepoData(info.owner, info.name);
-  };
-
   const handleRemoveRepo = (id: string) => {
     const updatedRepos = repos.filter(r => r.id !== id);
     setRepos(updatedRepos);
@@ -183,68 +146,55 @@ export default function App() {
   }, [repos]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 sm:p-6 md:p-10">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-3 sm:p-6 md:p-10">
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
         
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-800">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3 text-white">
-              <GithubIcon className="w-8 h-8 text-blue-400" />
-              GitHub Release Tracker
-            </h1>
-            <p className="text-gray-400 mt-1 text-sm sm:text-base">
-              Real-time monitoring for latest stable releases and pre-releases
-            </p>
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <GithubIcon className="w-8 h-8 text-blue-400 shrink-0" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                GitHub Release Tracker
+              </h1>
+              <p className="text-gray-400 text-xs sm:text-sm mt-0.5">
+                Real-time monitoring for latest stable releases and pre-releases
+              </p>
+            </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleRefreshAll}
-              disabled={isGlobalRefreshing}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 shadow-md hover:shadow-blue-600/20"
-            >
-              <RefreshCw className={`w-4 h-4 ${isGlobalRefreshing ? 'animate-spin' : ''}`} />
-              Refresh All
-            </button>
-          </div>
+          <button
+            onClick={handleRefreshAll}
+            disabled={isGlobalRefreshing}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-md hover:shadow-blue-600/20 w-full sm:w-auto"
+          >
+            <RefreshCw className={`w-4 h-4 ${isGlobalRefreshing ? 'animate-spin' : ''}`} />
+            Refresh All
+          </button>
         </header>
 
-        {/* Add Repository & Filter Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Add Repository Input Form */}
-          <form onSubmit={handleAddRepo} className="lg:col-span-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-grow">
-                <input
-                  type="text"
-                  placeholder="Paste GitHub URL (e.g. https://github.com/owner/repository)"
-                  value={newUrlInput}
-                  onChange={(e) => {
-                    setNewUrlInput(e.target.value);
-                    if (addError) setAddError(null);
-                  }}
-                  className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 text-gray-100 placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
-                />
-              </div>
-              <button
-                type="submit"
-                className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg text-sm transition-colors shrink-0 border border-gray-700"
-              >
-                <Plus className="w-4 h-4" />
-                Add Repo
-              </button>
+        {/* Filter Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Status Dashboard Summary Bar */}
+          <div className="flex items-center gap-4 sm:gap-6 px-3.5 py-2.5 bg-gray-900/60 border border-gray-800/80 rounded-xl text-xs sm:text-sm text-gray-400 overflow-x-auto scrollbar-none flex-grow">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Layers className="w-4 h-4 text-gray-400" />
+              <span>Total: <strong className="text-gray-200">{stats.total}</strong></span>
             </div>
-            {addError && (
-              <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {addError}
-              </p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Fetched: <strong className="text-emerald-400">{stats.loaded}</strong></span>
+            </div>
+            {stats.errors > 0 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <AlertCircle className="w-4 h-4 text-red-400" />
+                <span>Errors: <strong className="text-red-400">{stats.errors}</strong></span>
+              </div>
             )}
-          </form>
+          </div>
 
           {/* Search Filter */}
-          <div className="relative">
+          <div className="relative w-full md:w-80 shrink-0">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-gray-500" />
             <input
               type="text"
@@ -256,31 +206,107 @@ export default function App() {
           </div>
         </div>
 
-        {/* Status Dashboard Summary Bar */}
-        <div className="flex items-center gap-6 px-4 py-3 bg-gray-900/60 border border-gray-800/80 rounded-xl text-xs sm:text-sm text-gray-400 overflow-x-auto">
-          <div className="flex items-center gap-2 shrink-0">
-            <Layers className="w-4 h-4 text-gray-400" />
-            <span>Total Tracked: <strong className="text-gray-200">{stats.total}</strong></span>
+        {/* Compact Summary Table */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
+          <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-800 bg-gray-900/50 flex items-center justify-between">
+            <h2 className="text-xs sm:text-sm font-semibold text-gray-200 uppercase tracking-wider">Compact Summary Table</h2>
+            <span className="text-[11px] sm:text-xs text-gray-500">Showing {filteredRepos.length} of {repos.length}</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Successfully Fetched: <strong className="text-emerald-400">{stats.loaded}</strong></span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[500px] sm:min-w-0">
+              <thead>
+                <tr className="border-b border-gray-800 bg-gray-950/50 text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 sm:px-5 sm:py-3">Repository</th>
+                  <th className="px-4 py-2.5 sm:px-5 sm:py-3">Stable Version</th>
+                  <th className="px-4 py-2.5 sm:px-5 sm:py-3">Pre-release</th>
+                  <th className="px-4 py-2.5 sm:px-5 sm:py-3 hidden sm:table-cell">Status</th>
+                  <th className="px-4 py-2.5 sm:px-5 sm:py-3 text-right hidden md:table-cell">Last Updated</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/50 text-xs sm:text-sm">
+                {filteredRepos.map((repo) => (
+                  <tr key={repo.id} className="hover:bg-gray-850/20 transition-colors">
+                    <td className="px-4 py-2.5 sm:px-5 sm:py-3 font-medium max-w-[180px] sm:max-w-none truncate">
+                      <a 
+                        href={repo.info.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 flex items-center gap-1.5"
+                      >
+                        <span className="truncate">{repo.info.owner} / <span className="text-gray-200">{repo.info.name}</span></span>
+                        <ExternalLink className="w-3 h-3 opacity-50 shrink-0" />
+                      </a>
+                    </td>
+                    <td className="px-4 py-2.5 sm:px-5 sm:py-3">
+                      {repo.loading ? (
+                        <span className="text-xs text-gray-500 animate-pulse">Loading...</span>
+                      ) : repo.data?.stable ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[11px] sm:text-xs font-mono font-semibold truncate max-w-[100px] sm:max-w-none">
+                            {repo.data.stable}
+                          </span>
+                          {repo.data.isVersionFile && (
+                            <span className="text-[9px] bg-blue-950 text-blue-400 px-1 py-0.5 rounded border border-blue-900 shrink-0">
+                              VERSION
+                            </span>
+                          )}
+                          {repo.data.isTagFallback && !repo.data.isVersionFile && (
+                            <span className="text-[9px] bg-gray-800 text-gray-400 px-1 py-0.5 rounded border border-gray-700 shrink-0">
+                              Tag
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-600 italic">None</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 sm:px-5 sm:py-3">
+                      {repo.loading ? (
+                        <span className="text-xs text-gray-500 animate-pulse">Loading...</span>
+                      ) : repo.data?.prerelease ? (
+                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded text-[11px] sm:text-xs font-mono font-semibold truncate max-w-[100px] sm:max-w-none">
+                          {repo.data.prerelease}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-600 italic">None</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 sm:px-5 sm:py-3 hidden sm:table-cell">
+                      {repo.loading ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          Fetching
+                        </span>
+                      ) : repo.error ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20" title={repo.error}>
+                          Error
+                        </span>
+                      ) : repo.data ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          Success
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-800 text-gray-400 border border-gray-700">
+                          Idle
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 sm:px-5 sm:py-3 text-right text-[11px] text-gray-500 font-mono hidden md:table-cell">
+                      {repo.lastFetched ? repo.lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {stats.errors > 0 && (
-            <div className="flex items-center gap-2 shrink-0">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <span>Errors: <strong className="text-red-400">{stats.errors}</strong></span>
-            </div>
-          )}
         </div>
 
         {/* Repositories Cards Grid */}
         {filteredRepos.length === 0 ? (
-          <div className="text-center py-16 bg-gray-900/40 rounded-xl border border-gray-800">
-            <p className="text-gray-400 font-medium">No repositories found matching your search.</p>
+          <div className="text-center py-12 bg-gray-900/40 rounded-xl border border-gray-800">
+            <p className="text-gray-400 text-sm font-medium">No repositories found matching your search.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {filteredRepos.map((repo) => (
               <RepoCard 
                 key={repo.id} 
@@ -293,8 +319,8 @@ export default function App() {
         )}
 
         {/* Footer info */}
-        <footer className="pt-8 border-t border-gray-900 text-center text-xs text-gray-500 space-y-1">
-          <p>Version data retrieved directly via GitHub REST API with tag fallback support.</p>
+        <footer className="pt-6 border-t border-gray-900 text-center text-[10px] sm:text-xs text-gray-500 space-y-1">
+          <p>Version data retrieved directly via GitHub REST API with tag fallback and VERSION file support.</p>
         </footer>
 
       </div>
