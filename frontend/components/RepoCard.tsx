@@ -95,9 +95,12 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh, onRemove })
                 {data?.stable ? (
                   <div className="flex items-center space-x-1.5 min-w-0">
                     {data.stableDate && (
-                      <span className="text-[10px] sm:text-xs text-gray-500 hidden xs:inline-block truncate">
-                        {data.stableDate}
-                      </span>
+                      <div className="flex items-center space-x-1 shrink-0">
+                        <Calendar className="w-3 h-3 text-gray-500" />
+                        <span className="text-[10px] sm:text-xs text-gray-500 truncate">
+                          {data.stableDate}
+                        </span>
+                      </div>
                     )}
                     <a 
                       href={data.stableUrl || info.url} 
@@ -122,9 +125,12 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh, onRemove })
                 {data?.prerelease ? (
                   <div className="flex items-center space-x-1.5 min-w-0">
                     {data.prereleaseDate && (
-                      <span className="text-[10px] sm:text-xs text-gray-500 hidden xs:inline-block truncate">
-                        {data.prereleaseDate}
-                      </span>
+                      <div className="flex items-center space-x-1 shrink-0">
+                        <Calendar className="w-3 h-3 text-gray-500" />
+                        <span className="text-[10px] sm:text-xs text-gray-500 truncate">
+                          {data.prereleaseDate}
+                        </span>
+                      </div>
                     )}
                     <a 
                       href={data.prereleaseUrl || info.url} 
