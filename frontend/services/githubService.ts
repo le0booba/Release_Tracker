@@ -27,31 +27,23 @@ async function fetchWithRetry(url: string, retries = 2, delay = 800): Promise<Re
   throw new Error('Network request failed');
 }
 
-interface VersionFileData {
-  version: string;
-  date: string | null;
-  branch: string;
-}
-
-async function fetchVersionFile(owner: string, repo: string): Promise<VersionFileData | null> {
+async function fetchVersionFile(owner: string, repo: string): Promise<{ version: string; date: string | null } | null> {
   const branches = ['main', 'master'];
   for (const branch of branches) {
     try {
-      // Try to get file info via GitHub API to get the last commit date
       const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/VERSION?ref=${branch}`;
-      const apiRes = await fetchWithRetry(apiUrl);
-      
-      if (apiRes.ok) {
-        const fileData: any = await apiRes.json();
-        if (fileData && fileData.content) {
-          // Decode base64 content
-          const content = atob(fileData.content.replace(/\s/g, ''));
-          if (content && content.trim()) {
-            return {
-              version: content.trim(),
-              date: fileData.commit?.date ? new Date(fileData.commit.date).toLocaleDateString() : null,
-              branch: branch
-            };
+      const res = await fetch(apiUrl, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+        }
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        if (data && data.content) {
+          const version = atob(data.content).trim();
+          if (version) {
+            const date = data.git_commit?.date ? new Date(data.git_commit.date).toLocaleDateString() : null;
+            return { version, date };
           }
         }
       }
@@ -72,7 +64,7 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
     if (versionData) {
       return {
         stable: versionData.version,
-        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}/blob/${versionData.branch}/VERSION`,
+        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}/blob/main/VERSION`,
         stableDate: versionData.date,
         prerelease: null,
         prereleaseUrl: null,
@@ -115,7 +107,7 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
     if (versionData) {
       return {
         stable: versionData.version,
-        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}/blob/${versionData.branch}/VERSION`,
+        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}`,
         stableDate: versionData.date,
         prerelease: null,
         prereleaseUrl: null,
