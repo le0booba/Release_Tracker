@@ -27,16 +27,32 @@ async function fetchWithRetry(url: string, retries = 2, delay = 800): Promise<Re
   throw new Error('Network request failed');
 }
 
-async function fetchVersionFile(owner: string, repo: string): Promise<string | null> {
+interface VersionFileData {
+  version: string;
+  date: string | null;
+  branch: string;
+}
+
+async function fetchVersionFile(owner: string, repo: string): Promise<VersionFileData | null> {
   const branches = ['main', 'master'];
   for (const branch of branches) {
     try {
-      const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/VERSION`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.trim()) {
-          return text.trim();
+      // Try to get file info via GitHub API to get the last commit date
+      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/VERSION?ref=${branch}`;
+      const apiRes = await fetchWithRetry(apiUrl);
+      
+      if (apiRes.ok) {
+        const fileData: any = await apiRes.json();
+        if (fileData && fileData.content) {
+          // Decode base64 content
+          const content = atob(fileData.content.replace(/\s/g, ''));
+          if (content && content.trim()) {
+            return {
+              version: content.trim(),
+              date: fileData.commit?.date ? new Date(fileData.commit.date).toLocaleDateString() : null,
+              branch: branch
+            };
+          }
         }
       }
     } catch (e) {
@@ -52,11 +68,12 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
   
   // Specific check for cwash797-cmd/Panel-Naive-Mieru-by-RIXXX or any repo requesting VERSION file
   if (cleanOwner.toLowerCase() === 'cwash797-cmd' && cleanRepo.toLowerCase() === 'panel-naive-mieru-by-rixxx') {
-    const version = await fetchVersionFile(cleanOwner, cleanRepo);
-    if (version) {
+    const versionData = await fetchVersionFile(cleanOwner, cleanRepo);
+    if (versionData) {
       return {
-        stable: version,
-        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}/blob/main/VERSION`,
+        stable: versionData.version,
+        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}/blob/${versionData.branch}/VERSION`,
+        stableDate: versionData.date,
         prerelease: null,
         prereleaseUrl: null,
         isVersionFile: true,
@@ -94,11 +111,12 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
     }
 
     // Fallback 1: Try to fetch VERSION file for any repository if releases are empty
-    const version = await fetchVersionFile(cleanOwner, cleanRepo);
-    if (version) {
+    const versionData = await fetchVersionFile(cleanOwner, cleanRepo);
+    if (versionData) {
       return {
-        stable: version,
-        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}`,
+        stable: versionData.version,
+        stableUrl: `https://github.com/${cleanOwner}/${cleanRepo}/blob/${versionData.branch}/VERSION`,
+        stableDate: versionData.date,
         prerelease: null,
         prereleaseUrl: null,
         isVersionFile: true,
