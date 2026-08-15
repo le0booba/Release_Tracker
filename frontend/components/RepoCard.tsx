@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Clock, ExternalLink, Tag, RefreshCw, Trash2, Calendar } from 'lucide-react';
+import { AlertCircle, Clock, ExternalLink, Tag, RefreshCw, Calendar } from 'lucide-react';
 import { RepoState } from '../types.ts';
 
 const GithubIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -11,10 +11,9 @@ const GithubIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
 interface RepoCardProps {
   repo: RepoState;
   onRefresh: (owner: string, name: string) => void;
-  onRemove: (id: string) => void;
 }
 
-export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh, onRemove }) => {
+export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
   const { id, info, data, loading, error, lastFetched } = repo;
 
   return (
@@ -51,13 +50,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh, onRemove })
               title="Refresh repository"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button 
-              onClick={() => onRemove(id)}
-              className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              title="Remove from dashboard"
-            >
-              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>

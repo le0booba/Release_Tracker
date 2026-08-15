@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { parseGithubUrl } from './utils.ts';
 import { fetchReleases } from './services/githubService.ts';
 import { RepoState } from './types.ts';
 import { RepoCard } from './components/RepoCard.tsx';
-import { RefreshCw, Search, CheckCircle2, AlertCircle, Layers, ExternalLink } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, Layers, ExternalLink } from 'lucide-react';
 
 const GithubIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -25,29 +25,13 @@ const DEFAULT_URLS = [
   "https://github.com/telemt/telemt"
 ];
 
-const LOCAL_STORAGE_KEY = 'tracked_github_repo_urls';
-
 export default function App() {
   const [repos, setRepos] = useState<RepoState[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
 
   // Load repository list from localStorage or fallback to default list
   useEffect(() => {
-    let savedUrls: string[] = DEFAULT_URLS;
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          savedUrls = parsed;
-        }
-      }
-    } catch (e) {
-      console.error("Error reading localStorage", e);
-    }
-
-    const initialStates: RepoState[] = savedUrls.map((url, idx) => {
+    const initialStates: RepoState[] = DEFAULT_URLS.map((url, idx) => {
       const info = parseGithubUrl(url);
       return {
         id: info ? `${info.owner}/${info.name}` : `invalid-${idx}`,
@@ -62,15 +46,7 @@ export default function App() {
     setRepos(initialStates);
   }, []);
 
-  // Save current URLs to localStorage
-  const persistRepos = (currentRepos: RepoState[]) => {
-    const urlsToSave = currentRepos.map(r => r.info.originalUrl);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(urlsToSave));
-    } catch (e) {
-      console.error("Error saving to localStorage", e);
-    }
-  };
+
 
   const fetchRepoData = useCallback(async (owner: string, name: string) => {
     setRepos(current => 
@@ -122,28 +98,12 @@ export default function App() {
     setIsGlobalRefreshing(false);
   };
 
-  const handleRemoveRepo = (id: string) => {
-    const updatedRepos = repos.filter(r => r.id !== id);
-    setRepos(updatedRepos);
-    persistRepos(updatedRepos);
-  };
-
-  const filteredRepos = useMemo(() => {
-    if (!searchQuery.trim()) return repos;
-    const query = searchQuery.toLowerCase();
-    return repos.filter(r => 
-      r.info.owner.toLowerCase().includes(query) || 
-      r.info.name.toLowerCase().includes(query)
-    );
-  }, [repos, searchQuery]);
-
   // Statistics
-  const stats = useMemo(() => {
-    const total = repos.length;
-    const loaded = repos.filter(r => r.data !== null && !r.error).length;
-    const errors = repos.filter(r => r.error !== null).length;
-    return { total, loaded, errors };
-  }, [repos]);
+  const stats = {
+    total: repos.length,
+    loaded: repos.filter(r => r.data !== null && !r.error).length,
+    errors: repos.filter(r => r.error !== null).length
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-3 sm:p-6 md:p-10">
@@ -173,44 +133,28 @@ export default function App() {
           </button>
         </header>
 
-        {/* Filter Controls */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Status Dashboard Summary Bar */}
-          <div className="flex items-center gap-4 sm:gap-6 px-3.5 py-2.5 bg-gray-900/60 border border-gray-800/80 rounded-xl text-xs sm:text-sm text-gray-400 overflow-x-auto scrollbar-none flex-grow">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Layers className="w-4 h-4 text-gray-400" />
-              <span>Total: <strong className="text-gray-200">{stats.total}</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Fetched: <strong className="text-emerald-400">{stats.loaded}</strong></span>
-            </div>
-            {stats.errors > 0 && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <AlertCircle className="w-4 h-4 text-red-400" />
-                <span>Errors: <strong className="text-red-400">{stats.errors}</strong></span>
-              </div>
-            )}
+        {/* Status Dashboard Summary Bar */}
+        <div className="flex items-center gap-4 sm:gap-6 px-3.5 py-2.5 bg-gray-900/60 border border-gray-800/80 rounded-xl text-xs sm:text-sm text-gray-400 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Layers className="w-4 h-4 text-gray-400" />
+            <span>Total: <strong className="text-gray-200">{repos.length}</strong></span>
           </div>
-
-          {/* Search Filter */}
-          <div className="relative w-full md:w-80 shrink-0">
-            <Search className="w-4 h-4 absolute left-3.5 top-3 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search repositories..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-800 focus:border-gray-700 text-gray-100 placeholder-gray-500 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none transition-colors"
-            />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>Fetched: <strong className="text-emerald-400">{repos.filter(r => r.data !== null && !r.error).length}</strong></span>
           </div>
+          {repos.filter(r => r.error !== null).length > 0 && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <AlertCircle className="w-4 h-4 text-red-400" />
+              <span>Errors: <strong className="text-red-400">{repos.filter(r => r.error !== null).length}</strong></span>
+            </div>
+          )}
         </div>
 
         {/* Compact Summary Table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
-          <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-800 bg-gray-900/50 flex items-center justify-between">
+          <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-800 bg-gray-900/50">
             <h2 className="text-xs sm:text-sm font-semibold text-gray-200 uppercase tracking-wider">Compact Summary Table</h2>
-            <span className="text-[11px] sm:text-xs text-gray-500">Showing {filteredRepos.length} of {repos.length}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[500px] sm:min-w-0">
@@ -224,7 +168,7 @@ export default function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/50 text-xs sm:text-sm">
-                {filteredRepos.map((repo) => (
+                {repos.map((repo) => (
                   <tr key={repo.id} className="hover:bg-gray-850/20 transition-colors">
                     <td className="px-4 py-2.5 sm:px-5 sm:py-3 font-medium max-w-[180px] sm:max-w-none truncate">
                       <a 
@@ -301,22 +245,15 @@ export default function App() {
         </div>
 
         {/* Repositories Cards Grid */}
-        {filteredRepos.length === 0 ? (
-          <div className="text-center py-12 bg-gray-900/40 rounded-xl border border-gray-800">
-            <p className="text-gray-400 text-sm font-medium">No repositories found matching your search.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {filteredRepos.map((repo) => (
-              <RepoCard 
-                key={repo.id} 
-                repo={repo} 
-                onRefresh={fetchRepoData}
-                onRemove={handleRemoveRepo}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {repos.map((repo) => (
+            <RepoCard 
+              key={repo.id} 
+              repo={repo} 
+              onRefresh={fetchRepoData}
+            />
+          ))}
+        </div>
 
         {/* Footer info */}
         <footer className="pt-6 border-t border-gray-900 text-center text-[10px] sm:text-xs text-gray-500 space-y-1">
