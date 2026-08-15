@@ -31,19 +31,34 @@ async function fetchVersionFile(owner: string, repo: string): Promise<{ version:
   const branches = ['main', 'master'];
   for (const branch of branches) {
     try {
+      // Get file content and metadata from GitHub API
       const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/VERSION?ref=${branch}`;
-      const res = await fetch(apiUrl, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
+      const apiRes = await fetchWithRetry(apiUrl);
+      
+      if (apiRes.ok) {
+        const fileData: any = await apiRes.json();
+        
+        // Get the last commit date for this file
+        const commitsUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?path=VERSION&sha=${branch}&per_page=1`;
+        const commitsRes = await fetchWithRetry(commitsUrl);
+        
+        let fileDate = null;
+        if (commitsRes.ok) {
+          const commits: any = await commitsRes.json();
+          if (Array.isArray(commits) && commits.length > 0) {
+            fileDate = commits[0].commit?.committer?.date 
+              ? new Date(commits[0].commit.committer.date).toLocaleDateString()
+              : null;
+          }
         }
-      });
-      if (res.ok) {
-        const data: any = await res.json();
-        if (data && data.content) {
-          const version = atob(data.content).trim();
-          if (version) {
-            const date = data.git_commit?.date ? new Date(data.git_commit.date).toLocaleDateString() : null;
-            return { version, date };
+        
+        // Try to get content from raw URL as fallback
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/VERSION`;
+        const rawRes = await fetch(rawUrl);
+        if (rawRes.ok) {
+          const text = await rawRes.text();
+          if (text && text.trim()) {
+            return { version: text.trim(), date: fileDate };
           }
         }
       }
