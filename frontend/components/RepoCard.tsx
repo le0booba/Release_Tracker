@@ -18,7 +18,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-lg hover:border-gray-700 transition-colors duration-200 group">
-      {/* Header */}
       <div>
         <div className="flex justify-between items-start mb-3 sm:mb-4 gap-2">
           <div className="flex items-center space-x-2.5 min-w-0 pr-1">
@@ -41,7 +40,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
             </div>
           </div>
 
-          {/* Touch-friendly action buttons */}
           <div className="flex items-center space-x-1 shrink-0">
             <button 
               onClick={() => onRefresh(info.owner, info.name)}
@@ -54,7 +52,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="py-1">
           {loading && !data && !error ? (
             <div className="flex flex-col space-y-2.5 animate-pulse">
@@ -68,7 +65,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
             </div>
           ) : (
             <div className="space-y-2">
-              {/* Stable Version */}
               <div className="flex items-center justify-between p-2.5 sm:p-3 bg-gray-850 rounded-lg border border-gray-800/60 gap-2">
                 <div className="flex items-center space-x-1.5 text-gray-300 min-w-0">
                   <Tag className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -108,7 +104,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
                 )}
               </div>
 
-              {/* Pre-release Version */}
               <div className="flex items-center justify-between p-2.5 sm:p-3 bg-gray-850 rounded-lg border border-gray-800/60 gap-2">
                 <div className="flex items-center space-x-1.5 text-gray-300 min-w-0">
                   <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -142,7 +137,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({ repo, onRefresh }) => {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-800/80 flex items-center justify-between text-[11px] sm:text-xs text-gray-500">
         <div className="flex items-center">
           <Clock className="w-3.5 h-3.5 mr-1" />

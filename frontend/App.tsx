@@ -22,14 +22,14 @@ const DEFAULT_URLS = [
   "https://github.com/amnezia-vpn/amnezia-client",
   "https://github.com/lhear/SimpleXray",
   "https://github.com/9seconds/mtg",
-  "https://github.com/telemt/telemt"
+  "https://github.com/telemt/telemt",
+  "https://github.com/MHSanaei/3x-ui"
 ];
 
 export default function App() {
   const [repos, setRepos] = useState<RepoState[]>([]);
   const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
 
-  // Load repository list from localStorage or fallback to default list
   useEffect(() => {
     const initialStates: RepoState[] = DEFAULT_URLS.map((url, idx) => {
       const info = parseGithubUrl(url);
@@ -45,8 +45,6 @@ export default function App() {
 
     setRepos(initialStates);
   }, []);
-
-
 
   const fetchRepoData = useCallback(async (owner: string, name: string) => {
     setRepos(current => 
@@ -77,7 +75,6 @@ export default function App() {
     }
   }, []);
 
-  // Initial fetch on mount
   useEffect(() => {
     if (repos.length > 0 && repos.some(r => r.lastFetched === null && !r.loading && !r.error && r.info.owner !== 'Unknown')) {
       repos.forEach(repo => {
@@ -98,7 +95,6 @@ export default function App() {
     setIsGlobalRefreshing(false);
   };
 
-  // Statistics
   const stats = {
     total: repos.length,
     loaded: repos.filter(r => r.data !== null && !r.error).length,
@@ -108,8 +104,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-3 sm:p-6 md:p-10">
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
-        
-        {/* Header Section */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <GithubIcon className="w-8 h-8 text-blue-400 shrink-0" />
@@ -133,7 +127,6 @@ export default function App() {
           </button>
         </header>
 
-        {/* Status Dashboard Summary Bar */}
         <div className="flex items-center gap-4 sm:gap-6 px-3.5 py-2.5 bg-gray-900/60 border border-gray-800/80 rounded-xl text-xs sm:text-sm text-gray-400 overflow-x-auto scrollbar-none">
           <div className="flex items-center gap-1.5 shrink-0">
             <Layers className="w-4 h-4 text-gray-400" />
@@ -151,7 +144,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Compact Summary Table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
           <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-800 bg-gray-900/50">
             <h2 className="text-xs sm:text-sm font-semibold text-gray-200 uppercase tracking-wider">Compact Summary Table</h2>
@@ -244,7 +236,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Repositories Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {repos.map((repo) => (
             <RepoCard 
@@ -255,7 +246,6 @@ export default function App() {
           ))}
         </div>
 
-        {/* Footer info */}
         <footer className="pt-6 border-t border-gray-900 text-center text-[10px] sm:text-xs text-gray-500 space-y-1">
           <p>Version data retrieved directly via GitHub REST API with tag fallback and VERSION file support.</p>
         </footer>

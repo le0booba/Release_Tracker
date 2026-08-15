@@ -8,7 +8,7 @@ async function fetchWithRetry(url: string, retries = 2, delay = 800): Promise<Re
           'Accept': 'application/vnd.github.v3+json',
         }
       });
-      
+
       if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
         if (attempt < retries - 1) {
           await new Promise(res => setTimeout(res, delay * Math.pow(2, attempt)));
@@ -31,28 +31,25 @@ async function fetchVersionFile(owner: string, repo: string): Promise<{ version:
   const branches = ['main', 'master'];
   for (const branch of branches) {
     try {
-      // Get file content and metadata from GitHub API
       const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/VERSION?ref=${branch}`;
       const apiRes = await fetchWithRetry(apiUrl);
-      
+
       if (apiRes.ok) {
         const fileData: any = await apiRes.json();
-        
-        // Get the last commit date for this file
+
         const commitsUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?path=VERSION&sha=${branch}&per_page=1`;
         const commitsRes = await fetchWithRetry(commitsUrl);
-        
+
         let fileDate = null;
         if (commitsRes.ok) {
           const commits: any = await commitsRes.json();
           if (Array.isArray(commits) && commits.length > 0) {
-            fileDate = commits[0].commit?.committer?.date 
+            fileDate = commits[0].commit?.committer?.date
               ? new Date(commits[0].commit.committer.date).toLocaleDateString()
               : null;
           }
         }
-        
-        // Try to get content from raw URL as fallback
+
         const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/VERSION`;
         const rawRes = await fetch(rawUrl);
         if (rawRes.ok) {
@@ -63,7 +60,6 @@ async function fetchVersionFile(owner: string, repo: string): Promise<{ version:
         }
       }
     } catch (e) {
-      // Ignore and try next branch
     }
   }
   return null;
@@ -72,8 +68,7 @@ async function fetchVersionFile(owner: string, repo: string): Promise<{ version:
 export async function fetchReleases(owner: string, repo: string): Promise<ReleaseData> {
   const cleanOwner = owner.trim();
   const cleanRepo = repo.trim();
-  
-  // Specific check for cwash797-cmd/Panel-Naive-Mieru-by-RIXXX or any repo requesting VERSION file
+
   if (cleanOwner.toLowerCase() === 'cwash797-cmd' && cleanRepo.toLowerCase() === 'panel-naive-mieru-by-rixxx') {
     const versionData = await fetchVersionFile(cleanOwner, cleanRepo);
     if (versionData) {
@@ -89,7 +84,7 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
   }
 
   const releasesUrl = `https://api.github.com/repos/${encodeURIComponent(cleanOwner)}/${encodeURIComponent(cleanRepo)}/releases`;
-  
+
   try {
     const response = await fetchWithRetry(releasesUrl);
 
@@ -117,7 +112,6 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
       }
     }
 
-    // Fallback 1: Try to fetch VERSION file for any repository if releases are empty
     const versionData = await fetchVersionFile(cleanOwner, cleanRepo);
     if (versionData) {
       return {
@@ -130,7 +124,6 @@ export async function fetchReleases(owner: string, repo: string): Promise<Releas
       };
     }
 
-    // Fallback 2: Fetch git tags if no GitHub Releases or VERSION file were found
     const tagsUrl = `https://api.github.com/repos/${encodeURIComponent(cleanOwner)}/${encodeURIComponent(cleanRepo)}/tags?per_page=5`;
     const tagsResponse = await fetchWithRetry(tagsUrl);
 
